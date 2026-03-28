@@ -2,3 +2,4 @@ streamlit
 streamlit-calendar
 fpdf2
 pandas
+auth
