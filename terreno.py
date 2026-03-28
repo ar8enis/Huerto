@@ -1,7 +1,7 @@
 import streamlit as st
 import database as db
 
-def mostrar_terreno():
+def mostrar_terreno(u_id): # Se agrega u_id como parámetro
     st.title("🚜 Gestión de Terrenos")
     
     t1, t2 = st.tabs(["📋 Mis Lotes", "➕ Nuevo Terreno"])
@@ -17,21 +17,25 @@ def mostrar_terreno():
             
             if st.form_submit_button("Guardar Terreno"):
                 if nom:
-                    db.agregar_terreno(nom, var, arb, sup, uni)
+                    # Se pasa u_id a la función de la base de datos
+                    db.agregar_terreno(u_id, nom, var, arb, sup, uni)
                     st.success("Terreno registrado.")
                     st.rerun()
 
     with t1:
-        lotes = db.obtener_terrenos()
+        # Se filtran los lotes por u_id
+        lotes = db.obtener_terrenos(u_id)
+        
         if not lotes:
-            st.info("No hay terrenos registrados.")
+            st.info("No hay terrenos registrados en tu cuenta.")
         else:
-            total_arboles = sum(l[3] for l in lotes)
-            st.metric("Total Árboles en el Huerto", f"{total_arboles} 🌳")
+            # En la nueva tabla: 0:id, 1:user_id, 2:nombre, 3:variedad, 4:arboles, 5:superficie, 6:unidad
+            total_arboles = sum(l[4] for l in lotes)
+            st.metric("Total Árboles en tu Huerto", f"{total_arboles} 🌳")
             st.divider()
             
             for l in lotes:
-                id_t, nombre, variedad, arboles, superficie, unidad = l
+                id_t, _, nombre, variedad, arboles, superficie, unidad = l
                 with st.container(border=True):
                     c1, c2, c3 = st.columns([3, 1, 1])
                     with c1:
@@ -48,12 +52,18 @@ def mostrar_terreno():
                             db.eliminar_terreno(id_t)
                             st.rerun()
                 
-                # Formulario de edición simple si se pulsa el lápiz
+                # Formulario de edición
                 if st.session_state.get(f"editando_{id_t}", False):
                     with st.form(f"edit_f_{id_t}"):
-                        n_arb = st.number_input("Nuevo número de árboles", value=arboles)
+                        st.write(f"Editando Lote: {nombre}")
                         n_nom = st.text_input("Nuevo nombre", value=nombre)
-                        if st.form_submit_button("Actualizar"):
+                        n_arb = st.number_input("Nuevo número de árboles", value=arboles)
+                        
+                        col_btn1, col_btn2 = st.columns(2)
+                        if col_btn1.form_submit_button("Actualizar"):
                             db.actualizar_terreno(id_t, n_nom, variedad, n_arb, superficie, unidad)
+                            st.session_state[f"editando_{id_t}"] = False
+                            st.rerun()
+                        if col_btn2.form_submit_button("Cancelar"):
                             st.session_state[f"editando_{id_t}"] = False
                             st.rerun()
